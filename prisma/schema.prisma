@@ -9,6 +9,78 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+
+
+model User{
+  id           String     @id   @default(auto()) @map("_id") @db.ObjectId
+  clerkUserId  String     @unique
+  name         String     @unique
+  email        String
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  clients       Client[]
+
+}
+
+model Client{
+  id           String     @id   @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  lastName    String
+  phone        String
+
+  userId      String     @db.ObjectId
+  user        User       @relation(fields: [userId],references: [id],onDelete: Cascade)
+
+  loans        Loan[]
+
+  testNumbers    TestNumber[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+}
+
+model Loan {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  startDate         DateTime
+  endDate           DateTime
+  totalAmount       Float
+  renewal           Boolean?
+  payments          Payment[]
+  clientId          String    @db.ObjectId
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([clientId], name: "clientId")
+}
+
+model Payment {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  hasPay            Boolean
+  paymentDate       DateTime?
+  paymentAmount     Float?
+  paymentNumber     Int?
+  remainingBalance  Float?
+  loanId            String   @db.ObjectId
+  loan              Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([loanId], name: "loanId")
+}
+
+
+model TestNumber{
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  amount            Int    
+
+  clientId          String    @db.ObjectId
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
