@@ -15,6 +15,7 @@ import {
     TableRow,
   } from "@/components/ui/table"
 import prisma from "@/db/db"
+import LoansTable from "./_components/LoansTable"
 
 
 
@@ -50,8 +51,8 @@ const GetLoans = () => {
     },[total])
 
   return (
-    <div className="flex  flex-col w-full h-screen items-center">
-       <Table>
+    <div className="flex w-full h-screen flex-col items-center  lg:p-24 md:p-20 p-3 gap-4">
+       {/* <Table>
       <TableCaption>A list of your recent invoices.</TableCaption>
       <TableHeader>
         <TableRow>
@@ -78,7 +79,9 @@ const GetLoans = () => {
           <TableCell className="text-right">{total}</TableCell>
         </TableRow>
       </TableFooter>
-    </Table>
+    </Table> */}
+        <h1 className='font-semibold lg:text-2xl md:text-xl text-sm '>Préstamos Registrados</h1>
+        <LoansTable data={loans} />
     </div>
   )
 }

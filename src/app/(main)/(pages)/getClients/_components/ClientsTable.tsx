@@ -1,7 +1,9 @@
 import * as React from "react";
 import {
   ChevronDownIcon,
+  Edit,
   Edit2Icon,
+  MoreHorizontal,
   Trash,
 } from "lucide-react";
 import {
@@ -41,15 +43,7 @@ import { useRouter } from "next/navigation";
 import prisma from "@/db/db"
 import { useToast } from "@/components/ui/use-toast";
 import { deleteCurrentClient } from "@/lib/actions";
-
-
-
-
-export type ColumnDefWithActions<T> = ColumnDef<T> & {
-  actions?: (row: T) => React.ReactNode;
-};
-
-
+import { ColumnDefWithActions } from "@/lib/types";
 
 
 
@@ -64,9 +58,8 @@ function ClientsTable({ data }: { data: Client[] }) {
   const {toast} = useToast()
 
 
-  const handleAction = (client: Client,router: any) => {
+  const handleEditClient = (client: Client,router: any) => {
   
-    console.log("Detalles del cliente:", client);
     router.push(`/editClient/${client.id}`);
   };
   
@@ -84,6 +77,13 @@ function ClientsTable({ data }: { data: Client[] }) {
           description: "Tu cliente se ha eliminado exitosamente.",
          
       })
+
+
+      setTimeout(() => {
+
+        location.reload()
+
+      },10)
 
       return userDeleted
   
@@ -133,23 +133,46 @@ function ClientsTable({ data }: { data: Client[] }) {
     
   
         return (
-          <div className="flex flex-row lg:gap-12 md:gap-9 gap-3 space-x-1">
-              <div onClick={() => handleAction(row.original,router)} className="flex flex-col gap-1 items-center hover:cursor-pointer">
-               <Edit2Icon />
-               <span>Editar</span>
-              </div>
+          // <div className="flex flex-row lg:gap-12 md:gap-9 gap-3 space-x-1">
+          //     <div onClick={() => handleAction(row.original,router)} className="flex flex-col gap-1 items-center hover:cursor-pointer">
+          //      <Edit2Icon />
+          //      <span>Editar</span>
+          //     </div>
              
             
                 
-              <div onClick={() => handleDeleteClient(row.original)} className="flex flex-col gap-1 items-center hover:cursor-pointer">
-               <Trash  color="red" />
-               <span className="text-red-500">Eliminar</span>
-              </div>
-              {/* <Button variant="default" onClick={() => handleAction(row.original,router)}>
-                Editar 
-              </Button> */}
+          //     <div onClick={() => handleDeleteClient(row.original)} className="flex flex-col gap-1 items-center hover:cursor-pointer">
+          //      <Trash  color="red" />
+          //      <span className="text-red-500">Eliminar</span>
+          //     </div>
+          //     {/* <Button variant="default" onClick={() => handleAction(row.original,router)}>
+          //       Editar 
+          //     </Button> */}
 
-          </div>
+          // </div>
+
+          
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant={'ghost'} className="p-0 h-8 w-8" >
+                   <span className="sr-only">Open menu</span>
+                   <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" >
+                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="border-slate-600 border " />
+                    <DropdownMenuItem className="flex flex-row gap-2 mr-2 hover:cursor-pointer" onClick={() => handleEditClient(row.original,router)} >
+                        <Edit size={18}  /> 
+                        <span> Editar </span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDeleteClient(row.original)} className="flex flex-row gap-2 mr-1 hover:cursor-pointer">
+                        <Trash color="red" size={18}  /> 
+                        <span  className="text-red-600"> Eliminar </span>
+                    </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          
           
         );
       },
@@ -214,7 +237,7 @@ function ClientsTable({ data }: { data: Client[] }) {
         </DropdownMenu>
       </div>
       <div className="rounded-md border">
-        <Table>
+        <Table> 
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>

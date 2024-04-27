@@ -36,10 +36,14 @@ const AddClientPage = () => {
             const clientId = await createClient(clientForm.getValues().name,clientForm.getValues().lastName,clientForm.getValues().phone)
 
 
-            cId = clientId
-
-            console.log(cId)
-            //console.log(clientId)
+       
+            setTimeout(() => {
+                
+                router.push(`/addLoan/${clientId}`)
+                
+    
+        
+                },10)
 
             return clientId
 
@@ -50,13 +54,7 @@ const AddClientPage = () => {
             setIsLoading(false)
             clientForm.reset()
 
-            setTimeout(() => {
-                
-            router.push(`/addLoan/${cId}`)
-            
-
-    
-            },100)
+           
             
         }
 

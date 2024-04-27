@@ -20,6 +20,7 @@ const AddLoanPage = () => {
 
     const [date, setDate] = useState<Date | undefined>()
     const [finalDateCalculated,setFinalDateCalculated] = useState<Date | undefined>()
+    const [greatTotal,setGreatTotal] = useState<number>(0)
     const [isMounted,setIsMounted] = useState<boolean>(false)
     const [isLoading,setIsLoading] = useState<boolean>(false)
    
@@ -212,11 +213,6 @@ const AddLoanPage = () => {
    
    
                    />
-   
-                   
-   
-                           
-   
    
                    
    

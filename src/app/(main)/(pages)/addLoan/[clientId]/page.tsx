@@ -35,6 +35,8 @@ const AddLoan = ({params: {clientId}} : AddLoanProps) => {
       const [isLoading,setIsLoading] = useState<boolean>(false)
       const [client,setClient] = useState<any>()
      
+
+      const router = useRouter()
      
     const fetchClient = async () => {
         const data = await getClientIdData(clientId)
@@ -101,6 +103,8 @@ const AddLoan = ({params: {clientId}} : AddLoanProps) => {
 
             console.log(response)
 
+            router.push('/getLoans')
+
             return response
 
         }catch(error)
@@ -110,6 +114,8 @@ const AddLoan = ({params: {clientId}} : AddLoanProps) => {
             form.reset()
 
             setIsLoading(false)
+
+            
         }
 
     }

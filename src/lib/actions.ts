@@ -1,9 +1,19 @@
 "use server"
 import prisma from "@/db/db"
 import { auth, currentUser } from "@clerk/nextjs";
+import { Loan } from "@prisma/client";
+import { error } from "console";
+import { addDays } from "date-fns";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { use } from "react";
+
+
+interface MyResponseInit extends ResponseInit{
+    maxPaymentsReached?: boolean
+}
+
+const responseInit: MyResponseInit = { status: 400, maxPaymentsReached: true };
 
 
 export const getCurrentUser = async () => {
@@ -136,70 +146,6 @@ export const deleteCurrentClient = async (clientId: string) => {
 
 
 
-//LOAN DATA ACTIONS
-
-
-export const createLoan = async (clientId: string,startDate: Date,endDate: Date,totalAmount: string) => {
-
-    const findClient = await prisma.client.findFirst({
-        where:{
-            id: clientId
-        }
-    })
-
-    if(!findClient) return new Response("Unauthorized", { status: 401 });
-
-    const loan = await prisma.loan.create({
-        data:{
-            clientId: findClient.id,
-            startDate: startDate,
-            endDate: endDate,
-            totalAmount: parseFloat(totalAmount)
-        }
-    })
-
-
-    return loan
-
-}
-
-
-export const createTestAction = async (clientId: string,amount: string) => {
-
-    try{
-
-        const user = await currentUser()
-
-        if(!user)  return new Response("Unauthorized", { status: 401 });
-
-        const findUser = await prisma.user.findUnique({
-            where:{
-                clerkUserId: user.id
-            }
-        })
-
-
-        if(!findUser) return console.log("CANNOT FIND CURRENT USER")
-
-
-        const testData = await prisma.testNumber.create({
-            data:{
-                clientId: clientId,
-                amount: parseInt(amount)
-            }
-        })
-
-
-        return testData
-
-    }catch(error)
-    {
-        console.log("CREATE TEST ERROR: --> ",error)
-    }
-
-}
-
-
 export const getAllClientData = async () => {
 
     try{
@@ -264,13 +210,121 @@ export const getAllLoanData = async () => {
 
 }
 
+export const getCurrentLoanData = async (loanId: string) =>{
+    try{
+        const findLoan = await prisma.loan.findFirst({
+            where:{
+                id: loanId
+            }
+        })
+    
+   
+         
+         return findLoan ?? null
+    }catch(error)
+    {
+        console.log(error)
+    }
+}
 
 
+export const createLoan = async (clientId: string,startDate: Date,endDate: Date,totalAmount: string) => {
+
+    const findClient = await prisma.client.findFirst({
+        where:{
+            id: clientId
+        }
+    })
+
+    if(!findClient) return new Response("Unauthorized", { status: 401 });
+
+    // Obtener el valor predeterminado de interestRate
+    const defaultInterestRate = 20; // Este valor debe coincidir con el valor predeterminado en tu modelo
+
+    const totalAmountFloat = parseFloat(totalAmount)
+    const interestRateDecimal = defaultInterestRate / 100
+    const greatTotalAmount = totalAmountFloat * (1 + interestRateDecimal)
+   
+
+    const loan = await prisma.loan.create({
+        data:{
+            clientId: findClient.id,
+            startDate: startDate,
+            endDate: endDate,
+            totalAmount: totalAmountFloat,
+            interestRate: defaultInterestRate,
+            greatTotalAmount: greatTotalAmount,
+            remainingBalance: totalAmountFloat,
+            renewal: false
+        }
+    })
+
+
+    return loan
+
+}
+
+
+export const deleteCurrentLoan = async (loanId: string) => {
+
+    try{
+
+        await prisma.loan.delete({
+            where:{
+              id: loanId
+            }
+        })
+
+    }catch(error)
+    {
+        console.log("Delete Loan Error -->",error)
+    }
+
+}
+
+
+export const updateCurrentLoanData = async (loanId: string,renewal?: boolean,totalAmount?: number,remainingBalance?: number) => {
+
+    try{
+
+        let updateLoanData: any = {}
+
+        if(renewal !== undefined){
+            updateLoanData.renewal = renewal
+
+            // Si renewal es true, actualiza totalAmount a un nuevo valor
+            if (renewal && totalAmount !== undefined) {
+                //updateLoanData.remainingBalance = totalAmount
+                updateLoanData.totalAmount = totalAmount;
+                updateLoanData.moneyNotReceived = remainingBalance
+            }
+        }
+
+        const updateLoan = await prisma.loan.update({
+            where:{
+                id: loanId
+            },
+            data: updateLoanData
+            
+        })
+
+        return updateLoan
+
+
+    }catch(error)
+    {
+        console.log("UPDATE CURRENT LOAN ERROR --> ",error)
+        return {error: error,status: 500}
+    }
+
+}
 
 //PAYMENT DATA ACTIONS
 
 
-export const addPaymentData = async () => {
+export const createPayment = async (hasPay: any,loanId: string,paymentAmount?: string) => {
+
+    const prismTransaction = await prisma.$transaction
 
     try{
 
@@ -279,10 +333,153 @@ export const addPaymentData = async () => {
 
         if(!user) return new Response("Unauthorized", { status: 401 });
 
+
+        const findLoan = await prisma.loan.findUnique({
+            where:{
+                id: loanId
+            }
+        })
+
+        if(!findLoan) return redirect('/getLoans')
+            // Contar el número de pagos existentes para este préstamo
+        const paymentCount = await prisma.payment.count({
+            where: {
+                loanId: loanId
+            }
+        });
+
+        // Si ya hay 3 pagos, retornar un mensaje de error
+        if (paymentCount >= 2) {
+            
+            //console.log(responseInit)
+            //return JSON.stringify("NO ENTROOOOOO")
+            //return NextResponse.json({message: "No hfhhfghfhgfhfhhfghfghfgh"}, {status: 400});
+            const errorMessage = "No se pueden agregar más pagos";
+            return {error: errorMessage,status: 400}
+        }
+
+
+        if(!hasPay){
+            const updateLoanEndDate = await prisma.loan.update({
+                where:{
+                    id: loanId
+                },
+                data:{
+                    endDate: addDays(findLoan.endDate,1)
+                }
+            })
+
+            return updateLoanEndDate
+        }
+
+        if(hasPay && paymentAmount == undefined || paymentAmount == '' || paymentAmount == '0'){
+            
+            return new NextResponse("Payment amount is required when hasPay is true", { status: 400 });
+            
+        }
+
+
+        const latestPayment = await prisma.payment.findFirst({
+            where:{
+                loanId: loanId
+            },
+            orderBy:{
+                paymentNumber: 'desc'
+            }
+        })
+
+         
+
+        // Calcular el nuevo número de pago
+        let newPaymentNumber = 1;
+
+        
+
+        if(latestPayment){
+
+            if(latestPayment.paymentNumber){
+                newPaymentNumber = latestPayment.paymentNumber   + 1
+
+                // Asegurarse de que el número de pago no exceda 12
+                newPaymentNumber = Math.min(newPaymentNumber,2)
+
+                console.log(newPaymentNumber)
+            }
+            
+
+        }
+
+        
+       
+
+        const payment =  await prisma.payment.create({
+            data:{
+                hasPay: hasPay,
+                loanId: findLoan.id,
+                paymentAmount: parseFloat(paymentAmount ?? ''),
+                paymentDate: new Date(),
+                paymentNumber:  newPaymentNumber
+            }
+
+            
+        })
+
+        if(findLoan.remainingBalance){
+
+             await prisma.loan.update({
+                where:{
+                    id: loanId
+                },
+                data:{
+                    remainingBalance: findLoan.remainingBalance  - parseFloat(paymentAmount ?? '')
+                }
+            })
+
+            
+        }
+
+       
+        return payment
+
+
     }catch(error)
     {
         console.log("Create Payment Data error --> ",error)
+
+        return redirect('/getLoans')
     }
 
 }
+
+
+export const getCurrentPaymentData = async (loanId: string) => {
+    try {
+        // const user = await currentUser();
+
+        // if (!user) return new Response("Unauthorized", { status: 401 });
+
+        // const findLoan = await prisma.loan.findUnique({
+        //     where: {
+        //         id: loanId
+        //     }
+        // });
+
+        // if (!findLoan) return []
+
+        const foundPayments = await prisma.payment.findMany({
+            where: {
+                loanId: loanId
+            },
+            include: {
+                loan: true
+            }
+        });
+
+        return foundPayments;
+    } catch (error) {
+        console.error("Get Payment Data Error --> ", error);
+        return []; // Devolver un array vacío en caso de error
+    }
+};
+
 

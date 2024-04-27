@@ -32,8 +32,7 @@ const ClientsPage = () => {
 
         const res = await getAllClientData()
 
-        console.log(res)
-
+       
         if(res instanceof Response)
         {
              // Manejar el caso de error, por ejemplo lanzando una excepción
@@ -51,7 +50,7 @@ const ClientsPage = () => {
 
     
   return (
-    <div className='flex w-full h-screen flex-col items-center justify-center lg:p-24 p-3'>
+    <div className='flex w-full h-screen flex-col items-center  lg:p-24 md:p-20 p-3 gap-4'>
         {/* {clients?.map((client) => {
             return(
                 <div key={client.id} >
@@ -94,6 +93,7 @@ const ClientsPage = () => {
         </TableRow>
       </TableFooter>
     </Table> */}
+       <h1 className='font-semibold lg:text-2xl md:text-xl text-sm '>Clientes Registrados</h1>
        <ClientsTable data={clients || []}  />
     </div>
   )

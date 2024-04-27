@@ -38,7 +38,6 @@ model Client{
 
   loans        Loan[]
 
-  testNumbers    TestNumber[]
 
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -50,7 +49,11 @@ model Loan {
   startDate         DateTime
   endDate           DateTime
   totalAmount       Float
-  renewal           Boolean?
+  interestRate      Float    @default(20)
+  greatTotalAmount  Float?
+  remainingBalance  Float?
+  moneyNotReceived  Float?
+  renewal           Boolean  @default(false)
   payments          Payment[]
   clientId          String    @db.ObjectId
   client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -66,21 +69,14 @@ model Payment {
   paymentDate       DateTime?
   paymentAmount     Float?
   paymentNumber     Int?
-  remainingBalance  Float?
   loanId            String   @db.ObjectId
   loan              Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   @@index([loanId], name: "loanId")
+
+  
 }
 
-
-model TestNumber{
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  amount            Int    
-
-  clientId          String    @db.ObjectId
-  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-}
 
