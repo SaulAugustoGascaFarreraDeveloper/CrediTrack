@@ -85,28 +85,28 @@ export const getClientIdData = async (clientId: string) => {
 }
 
 
-export const getCurrentClientData = async (clientId: string) => {
+// export const getCurrentClientData = async (clientId: string) => {
 
 
-    try{
-        const findClient = await prisma.client.findFirst({
-            where:{
-                id: clientId
-            }
-        })
+//     try{
+//         const findClient = await prisma.client.findFirst({
+//             where:{
+//                 id: clientId
+//             }
+//         })
     
    
          
-         return findClient ?? null
-    }catch(error)
-    {
-        console.log(error)
-    }
+//          return findClient ?? null
+//     }catch(error)
+//     {
+//         console.log(error)
+//     }
     
    
     
 
-}
+// }
 
 export const updateCurrentClientData = async (clientId: string,name?: string,lastName?: string,phone?: string) => {
 
@@ -165,10 +165,33 @@ export const getAllClientData = async () => {
 
         if(!findUser) return new Response("Unauthorized", { status: 401 });
 
+        // Encuentra todos los clientes que no tienen préstamos asociados
+        const clientsWithoutLoans = await prisma.client.findMany({
+            where: {
+                userId: findUser.id,
+                loans: {
+                    none: {} // Busca clientes que no tengan ningún préstamo asociado
+                }
+            }
+        });
+
+        // Elimina los clientes encontrados
+        const deletePromises = clientsWithoutLoans.map(client => {
+            return prisma.client.delete({
+                where: {
+                    id: client.id
+                }
+            });
+        });
+
+        // Espera a que todas las eliminaciones se completen
+        await Promise.all(deletePromises);
+
 
         const getClients = await prisma.client.findMany({
             where:{
-                userId: findUser.id
+                userId: findUser.id,
+                
             },
             include:{
                 loans: true
@@ -196,7 +219,17 @@ export const getAllLoanData = async () => {
 
         const findClient = await prisma.loan.findMany({
             include:{
-                client: true
+                client: {
+                    select:{
+                        id: true,
+                        name: true,
+                        lastName: true,
+                        phone: true,
+                        userId: true,
+                        createdAt: true,
+                        updatedAt: true
+                    }
+                }
             }
         })
 
@@ -254,7 +287,7 @@ export const createLoan = async (clientId: string,startDate: Date,endDate: Date,
             totalAmount: totalAmountFloat,
             interestRate: defaultInterestRate,
             greatTotalAmount: greatTotalAmount,
-            remainingBalance: totalAmountFloat,
+            remainingBalance: greatTotalAmount,
             renewal: false
         }
     })
@@ -283,33 +316,68 @@ export const deleteCurrentLoan = async (loanId: string) => {
 }
 
 
-export const updateCurrentLoanData = async (loanId: string,renewal?: boolean,totalAmount?: number,remainingBalance?: number) => {
+export const updateCurrentLoanData = async (loanId: string,renewal?: boolean,totalAmount?: string,remainingBalance?: number,startDate?: Date,endDate?: Date) => {
+
+    let transaction
+    let updateLoanData: any = {}
 
     try{
 
-        let updateLoanData: any = {}
-
+        
         if(renewal !== undefined){
             updateLoanData.renewal = renewal
 
             // Si renewal es true, actualiza totalAmount a un nuevo valor
-            if (renewal && totalAmount !== undefined) {
-                //updateLoanData.remainingBalance = totalAmount
-                updateLoanData.totalAmount = totalAmount;
+            if (renewal && typeof totalAmount === "string") {
+
+                const interestRateDecimal = 20 / 100
+                const greatTotalAmount = parseFloat(totalAmount) * (1 + interestRateDecimal)
+
+                // Convertir totalAmount a un número de punto flotante
+                const totalAmountFloat = parseFloat(totalAmount);
+
+               
+                // if(!isNaN(totalAmountFloat)){
+                       
+                //         console.log(totalAmountFloat)
+                // }
+                
+                updateLoanData.remainingBalance = greatTotalAmount
+                updateLoanData.totalAmount = totalAmountFloat;
                 updateLoanData.moneyNotReceived = remainingBalance
+                updateLoanData.greatTotalAmount = greatTotalAmount
+                updateLoanData.startDate = startDate
+
+                if(startDate)
+                updateLoanData.endDate = addDays(startDate,12)
             }
         }
 
-        const updateLoan = await prisma.loan.update({
-            where:{
-                id: loanId
-            },
-            data: updateLoanData
+        transaction = await prisma.$transaction([
             
-        })
 
-        return updateLoan
+        
 
+    
+            prisma.loan.update({
+                where:{
+                    id: loanId
+                },
+                data: updateLoanData
+                
+            }),
+
+            prisma.payment.deleteMany({
+                where:{
+                    loanId: loanId
+                }
+            })
+    
+            
+        ])
+
+       
+        return transaction[0]
 
     }catch(error)
     {
@@ -482,4 +550,19 @@ export const getCurrentPaymentData = async (loanId: string) => {
     }
 };
 
+
+export const getTotalClients = async () => {
+
+    const count = await prisma?.client.count()
+
+    return{amount: count}
+
+  }
+
+  export const getTotalLoans = async () => {
+    
+    const count = await prisma?.loan.count()
+
+    return{amount: count}
+  }
 

@@ -51,48 +51,7 @@ const ClientsPage = () => {
     
   return (
     <div className='flex w-full h-screen flex-col items-center  lg:p-24 md:p-20 p-3 gap-4'>
-        {/* {clients?.map((client) => {
-            return(
-                <div key={client.id} >
-                    {JSON.stringify(client)}
-                </div>
-            )
-        })} */}
-         {/* <Table>
-      <TableCaption>A list of your recent invoices.</TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[100px]">No.</TableHead>
-          <TableHead>Nombre</TableHead>
-          <TableHead>Apellido</TableHead>
-          <TableHead>Telefono</TableHead>
-          
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {clients?.map((client,index) => (
-          <TableRow key={client.id}>
-             <TableCell className="font-medium">{index+1}</TableCell>
-            <TableCell className="font-medium">{client.name}</TableCell>
-            <TableCell>{client.lastName}</TableCell>
-            <TableCell>{client.phone}</TableCell>
-            <TableCell className="font-medium">{client.name}</TableCell>
-            <TableCell>{client.lastName}</TableCell>
-            <TableCell>{client.phone}</TableCell>
-            <TableCell className="font-medium">{client.name}</TableCell>
-            <TableCell>{client.lastName}</TableCell>
-            <TableCell>{client.phone}</TableCell>
-           
-          </TableRow>
-        ))}
-      </TableBody>
-      <TableFooter>
-        <TableRow>
-          <TableCell colSpan={3}>Total</TableCell>
-          <TableCell className="text-right">$2,500.00</TableCell>
-        </TableRow>
-      </TableFooter>
-    </Table> */}
+        
        <h1 className='font-semibold lg:text-2xl md:text-xl text-sm '>Clientes Registrados</h1>
        <ClientsTable data={clients || []}  />
     </div>

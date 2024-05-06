@@ -1,3 +1,4 @@
+"use client"
 import * as React from "react";
 import {
   ChevronDownIcon,
@@ -44,12 +45,13 @@ import { Client, Loan } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import prisma from "@/db/db"
 import { useToast } from "@/components/ui/use-toast";
-import { createPayment, deleteCurrentClient, deleteCurrentLoan, updateCurrentLoanData } from "@/lib/actions";
+import { createPayment, deleteCurrentClient, deleteCurrentLoan, getClientIdData, updateCurrentLoanData } from "@/lib/actions";
 import { ColumnDefWithActions } from "@/lib/types";
 import Link from "next/link";
+import { channel } from "diagnostics_channel";
 
 interface LoansTableProps{
-    data: Loan[]
+    data: Loan[] 
 }
 
 
@@ -61,6 +63,8 @@ const LoansTable = ({data} : LoansTableProps) => {
     const [rowSelection,setRowSelection] = React.useState({})
 
     const [maxPaymentsReached, setMaxPaymentsReached] = React.useState(false);
+
+    const [clientNames, setClientNames] = React.useState<{ [clientId: string]: string }>({});
 
 
     const router = useRouter()
@@ -134,17 +138,60 @@ const LoansTable = ({data} : LoansTableProps) => {
       router.push(`/getPayment/${loan.id}`)
     }
 
+    React.useEffect(() => {
+
+      const fetchClientNames = async () => {
+        const names: { [clientId: string]: string } = {};
+        for (const loan of data) {
+          if (loan.clientId) {
+            const clientData = await getClientIdData(loan.clientId);
+            names[loan.clientId] = clientData ? clientData.name : 'Cliente no encontrado';
+          }
+        }
+        setClientNames(names);
+      };
+  
+      fetchClientNames();
+
+    },[data])
+
+    const getClientName = (clientId: string | undefined) => {
+      if (!clientId) return '';
+      return clientNames[clientId] || 'Cliente no encontrado';
+    };
+
 
     const columns: ColumnDefWithActions<Loan>[] = [
 
         {
             accessorKey: "clientId",
             header: "Cliente",
-            cell: ({row}) => (
-                <div className="capitalize">
-                    {row.getValue("clientId")}
-                </div>
-            )
+            cell: ({row}) => {
+                
+                // const clientId: string |  undefined = row.getValue("clientId")
+
+                // if(!clientId) return null
+
+                // try{
+                //   const client = await getClientIdData(clientId)
+
+                //   return(
+                //     <div className="capitalize">
+                //       {client ? `${client.name}` : "Cliente no Encontrado " }
+                //     </div>
+                //   )
+                // }catch(error)
+                // {
+                //   console.log(error)
+                // }
+
+                return (<div className="capitalize">
+                     { getClientName(row.getValue('clientId'))}
+                </div>)
+
+                
+                
+            }
         },
         {
             accessorKey: "totalAmount",
@@ -287,11 +334,13 @@ const LoansTable = ({data} : LoansTableProps) => {
 
       const moneyNotReceivedSum = data.reduce((total,loan) => total + (loan.moneyNotReceived ?? 0),0)
 
+      
+
   return (
     <div className="w-full">
         <div className="flex items-center py-4">
             <Input 
-                placeholder="Filtar..."
+                placeholder="Filtrar..."
                 value={(table.getColumn("clientId")?.getFilterValue() as string) ?? ""}
                 onChange={(e) => 
                     table.getColumn("clientId")?.setFilterValue(e.target.value)

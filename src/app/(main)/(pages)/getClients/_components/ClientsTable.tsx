@@ -196,7 +196,26 @@ function ClientsTable({ data }: { data: Client[] }) {
       columnVisibility,
       rowSelection,
     },
+    initialState:{
+      pagination:{
+        pageSize: 3
+      }
+    }
   });
+
+  // Función para manejar el cambio de página hacia atrás
+  const handlePreviousPage = () => {
+    if (table.getCanPreviousPage()) {
+      table.previousPage();
+    }
+  };
+
+  // Función para manejar el cambio de página hacia adelante
+  const handleNextPage = () => {
+    if (table.getCanNextPage()) {
+      table.nextPage();
+    }
+  };
 
   return (
     <div className="w-full">
